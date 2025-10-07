@@ -1,6 +1,9 @@
 #include <SPI.h>
 #include <IntervalTimer.h>
 
+
+
+
 // ========================= Pin Definitions =========================
 #define PIN_SPI_MOSI   11
 #define PIN_SPI_CLK    13
@@ -11,30 +14,105 @@
 #define PIN_HV_CTRL    23
 #define BUTTON_PIN     7  // Define the pin for the button
 
+// ========================= Actuator Configuration =========================
+// Select actuator type: LEMONT or HOMER
+// To switch actuator types, simply change the ACTUATOR_TYPE define below:
+//   #define ACTUATOR_TYPE LEMONT  // For Lemont PCB
+//   #define ACTUATOR_TYPE HOMER   // For Homer PCB
+#define ACTUATOR_TYPE HOMER
+
+// Actuator type enumeration
+enum ActuatorType {
+  LEMONT,
+  HOMER
+};
+
+// Actuator configuration structure
+struct ActuatorConfig {
+  const byte* finger;
+  const byte* reservoir;
+  const char* name;
+};
+
 // ========================= Single Address = 0 (32 pixels) =========================
 // We'll store your new arrays for "pixel #1 => finger=16, reservoir=8" etc.
 // Index 0 => doc's pixel #1, Index 31 => doc's pixel #32.
-// TRACES UP
-static const byte finger[32] = {
+
+// LEMONT PCB Configuration - Traces UP
+static const byte lemont_finger[32] = {
   16, 17, 33, 46, 47, 19, 29, 34, 44, 18, 20, 30,
   43, 45, 22, 28, 35, 41, 21, 24, 32, 39, 42, 23,
   26, 37, 40, 25, 31, 38, 27, 36
 };
 
-static const byte reservoir[32] = {8, 9, 57, 54, 55, 11, 5, 58, 52, 10, 12, 6, 51, 53, 14, 4, 59, 49, 13, 0, 56, 63, 50, 15, 2, 61, 48, 1, 7, 62, 3, 60};
+static const byte lemont_reservoir[32] = {
+  8, 9, 57, 54, 55, 11, 5, 58, 52, 10, 12, 6, 51, 53, 14, 4, 59, 49, 13, 0, 56, 63, 50, 15, 2, 61, 48, 1, 7, 62, 3, 60
+};
 
-// //Traces OUT
-// static const byte finger[32] = {
-//   16, 17, 33, 46, 47, 19, 29, 34, 44, 18, 20, 30,
-//   43, 45, 22, 28, 35, 41, 21, 24, 32, 39, 42, 23,
-//   26, 37, 40, 25, 31, 38, 27, 36
-// };
-// //Traces OUT
-// static const byte reservoir[32] = {
-//   8,  9,  6,  54, 55, 11, 5,  58, 52, 10, 12, 57,
-//   51, 53, 14, 4,  59, 49, 13,  0,  7,  63, 50, 15,
-//   2,  61, 48, 1,  56, 62, 3,  60
-// };
+// HOMER PCB Configuration - Traces UP Only Top PCB
+static const byte homer_finger[32] = {
+  18, 17, 47, 45, 44, 19, 16, 46, 43, 21, 20, 22, 
+  42, 41, 23, 24, 40, 39, 25, 27, 37, 35, 38, 26, 
+  29, 33, 36, 28, 31, 34, 30, 32
+};
+
+static const byte homer_reservoir[32] = {
+  10, 9, 55, 53, 52, 11, 8, 54, 51, 13, 12, 14, 
+  50, 49, 15, 0, 48, 63, 1, 3, 61, 59, 62, 2, 
+  5, 57, 60, 4, 7, 58, 6, 56
+};
+
+// Actuator configurations
+static const ActuatorConfig actuatorConfigs[] = {
+  {lemont_finger, lemont_reservoir, "LEMONT"},  // LEMONT = 0
+  {homer_finger, homer_reservoir, "HOMER"}      // HOMER = 1
+};
+
+// Current actuator configuration (set at compile time)
+static const ActuatorConfig* currentActuator = &actuatorConfigs[ACTUATOR_TYPE];
+
+// Helper functions for actuator configuration
+const char* getActuatorName() {
+  return currentActuator->name;
+}
+
+ActuatorType getActuatorType() {
+  return (ActuatorType)ACTUATOR_TYPE;
+}
+
+// Function to get finger pin for a given pixel (for debugging/display)
+byte getFingerPin(byte pixel) {
+  return currentActuator->finger[pixel];
+}
+
+// Function to get reservoir pin for a given pixel (for debugging/display)
+byte getReservoirPin(byte pixel) {
+  return currentActuator->reservoir[pixel];
+}
+
+// Test function to verify actuator configuration (for debugging)
+void testActuatorConfiguration() {
+  Serial.print("Current actuator: ");
+  Serial.println(getActuatorName());
+  Serial.print("Actuator type: ");
+  Serial.println(getActuatorType());
+  
+  // Test first few pixels
+  Serial.println("First 5 pixels mapping:");
+  for(int i = 0; i < 5; i++) {
+    Serial.print("Pixel ");
+    Serial.print(i);
+    Serial.print(": finger=");
+    Serial.print(getFingerPin(i));
+    Serial.print(", reservoir=");
+    Serial.println(getReservoirPin(i));
+  }
+}
+
+
+
+
+// Legacy commented arrays removed - now using modular actuator configuration
 
 
 // "Inflate" => finger=0, reservoir=1
@@ -1912,11 +1990,11 @@ void updatePWM() {
   // subphase partial logic
   for(int pix = 0; pix < 32; pix++) {
     if(desired[pix] > pwm_phase) {
-      vals[finger[pix]]    = 0;
-      vals[reservoir[pix]] = 1;
+      vals[currentActuator->finger[pix]]    = 0;
+      vals[currentActuator->reservoir[pix]] = 1;
     } else {
-      vals[finger[pix]]    = 0;
-      vals[reservoir[pix]] = 0;
+      vals[currentActuator->finger[pix]]    = 0;
+      vals[currentActuator->reservoir[pix]] = 0;
     }
   }
 
