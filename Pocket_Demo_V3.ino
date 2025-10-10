@@ -15,16 +15,18 @@
 #define BUTTON_PIN     7  // Define the pin for the button
 
 // ========================= Actuator Configuration =========================
-// Select actuator type: LEMONT or HOMER
+// Select actuator type: LEMONT, HOMER_UP, or HOMER_DOWN
 // To switch actuator types, simply change the ACTUATOR_TYPE define below:
-//   #define ACTUATOR_TYPE LEMONT  // For Lemont PCB
-//   #define ACTUATOR_TYPE HOMER   // For Homer PCB
-#define ACTUATOR_TYPE HOMER
+//   #define ACTUATOR_TYPE LEMONT      // For Lemont PCB
+//   #define ACTUATOR_TYPE HOMER_UP    // For Homer PCB (traces up)
+//   #define ACTUATOR_TYPE HOMER_DOWN  // For Homer PCB (traces down)
+#define ACTUATOR_TYPE HOMER_DOWN
 
 // Actuator type enumeration
 enum ActuatorType {
   LEMONT,
-  HOMER
+  HOMER_UP,
+  HOMER_DOWN
 };
 
 // Actuator configuration structure
@@ -46,26 +48,42 @@ static const byte lemont_finger[32] = {
 };
 
 static const byte lemont_reservoir[32] = {
-  8, 9, 57, 54, 55, 11, 5, 58, 52, 10, 12, 6, 51, 53, 14, 4, 59, 49, 13, 0, 56, 63, 50, 15, 2, 61, 48, 1, 7, 62, 3, 60
+  8, 9, 57, 54, 55, 11, 5, 58, 52, 10, 12, 6, 51, 
+  53, 14, 4, 59, 49, 13, 0, 56, 63, 50, 15, 2, 61, 
+  48, 1, 7, 62, 3, 60
 };
 
 // HOMER PCB Configuration - Traces UP Only Top PCB
-static const byte homer_finger[32] = {
-  18, 17, 47, 45, 44, 19, 16, 46, 43, 21, 20, 22, 
-  42, 41, 23, 24, 40, 39, 25, 27, 37, 35, 38, 26, 
+static const byte homer_up_finger[32] = {
+  18, 17, 47, 45, 44, 19, 16, 46, 43, 21, 20, 22,
+  42, 41, 23, 24, 40, 39, 25, 27, 37, 35, 38, 26,
   29, 33, 36, 28, 31, 34, 30, 32
 };
 
-static const byte homer_reservoir[32] = {
-  10, 9, 55, 53, 52, 11, 8, 54, 51, 13, 12, 14, 
-  50, 49, 15, 0, 48, 63, 1, 3, 61, 59, 62, 2, 
+static const byte homer_up_reservoir[32] = {
+  10, 9, 55, 53, 52, 11, 8, 54, 51, 13, 12, 14,
+  50, 49, 15, 0, 48, 63, 1, 3, 61, 59, 62, 2,
   5, 57, 60, 4, 7, 58, 6, 56
+};
+
+// HOMER PCB Configuration - Traces DOWN
+static const byte homer_down_finger[32] = {
+  45, 46, 16, 18, 19, 44, 47, 17, 20, 42, 43, 41,
+  21, 22, 40, 39, 23, 24, 38, 36, 26, 28, 25, 37,
+  34, 30, 27, 35, 32, 29, 33, 31
+};
+
+static const byte homer_down_reservoir[32] = {
+  53, 54, 8, 10, 11, 52, 55, 9, 12, 50, 51, 49,
+  13, 14, 48, 63, 15, 0, 62, 60, 2, 4, 1, 61,
+  58, 6, 3, 59, 56, 5, 57, 7
 };
 
 // Actuator configurations
 static const ActuatorConfig actuatorConfigs[] = {
-  {lemont_finger, lemont_reservoir, "LEMONT"},  // LEMONT = 0
-  {homer_finger, homer_reservoir, "HOMER"}      // HOMER = 1
+  {lemont_finger, lemont_reservoir, "LEMONT"},          // LEMONT = 0
+  {homer_up_finger, homer_up_reservoir, "HOMER_UP"},    // HOMER_UP = 1
+  {homer_down_finger, homer_down_reservoir, "HOMER_DOWN"}  // HOMER_DOWN = 2
 };
 
 // Current actuator configuration (set at compile time)
