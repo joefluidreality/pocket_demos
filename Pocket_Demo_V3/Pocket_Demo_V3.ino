@@ -14,14 +14,25 @@
 // ========================= Single Address = 0 (32 pixels) =========================
 // We'll store your new arrays for "pixel #1 => finger=16, reservoir=8" etc.
 // Index 0 => doc's pixel #1, Index 31 => doc's pixel #32.
+
 // TRACES UP
 static const byte finger[32] = {
-  16, 17, 33, 46, 47, 19, 29, 34, 44, 18, 20, 30,
-  43, 45, 22, 28, 35, 41, 21, 24, 32, 39, 42, 23,
-  26, 37, 40, 25, 31, 38, 27, 36
+  18, 17, 47, 45, 44, 19, 16, 46, 43, 21, 20, 22, 42, 41, 23, 24, 40, 39, 25, 27, 37, 35, 38, 26, 29, 33, 36, 28, 31, 34, 30, 32
 };
 
-static const byte reservoir[32] = {8, 9, 57, 54, 55, 11, 5, 58, 52, 10, 12, 6, 51, 53, 14, 4, 59, 49, 13, 0, 56, 63, 50, 15, 2, 61, 48, 1, 7, 62, 3, 60};
+static const byte reservoir[32] = {10, 9, 55, 53, 52, 11, 8, 54, 51, 13, 12, 14, 50, 49, 15, 0, 48, 63, 1, 3, 61, 59, 62, 2, 5, 57, 60, 4, 7, 58, 6, 56};
+
+// // TRACES IDK 
+// static const byte finger[32] = {
+//   16, 17, 33, 46, 47, 19, 29, 34, 44, 18, 20, 30,
+//   43, 45, 22, 28, 35, 41, 21, 24, 32, 39, 42, 23,
+//   26, 37, 40, 25, 31, 38, 27, 36
+// };
+
+// static const byte reservoir[32] = {
+//   8, 9, 57, 54, 55, 11, 5, 58, 52, 10, 12, 6, 51, 
+//   53, 14, 4, 59, 49, 13, 0, 56, 63, 50, 15, 2, 
+//   61, 48, 1, 7, 62, 3, 60};
 
 // //Traces OUT
 // static const byte finger[32] = {
@@ -67,6 +78,13 @@ static volatile unsigned long subCount = 0;  // counting subphases
 #define DEMO_INTERVAL_SUBPHASES 1000  // 
 static volatile bool demoActive = false; // track if demo is currently playing
 static volatile bool psuON = false; // track if demo is currently playing
+
+// ========================= REVERSE MODE =========================
+// Reverse/deflate runs for 100ms before and after each routine
+#define REVERSE_DURATION_MS 400
+static volatile bool reverseActive = false;
+static volatile unsigned long reverseStartTime = 0;
+static volatile bool preReverseActive = false; // true = reverse before demo, false = reverse after demo
 
 // Define frames for Demo Up and down bar
 // Define frames for Demo Up and down bar
@@ -1684,15 +1702,21 @@ void loop() {
         demoMode++;
         if (demoMode > 4) {
           demoMode = 1;
-          // disableHV(); 
         }
 
         currentFrame = 0;  // Reset frame counter
+        subCount = 0;
         if (psuON == false) {
           enableHV(); 
           psuON = true;
         }
-        demoActive = true;         
+
+        // Start pre-reverse: reverse for 100ms, then auto-start demo
+        demoActive = false;
+        reverseActive = true;
+        preReverseActive = true;
+        reverseStartTime = millis();
+
         Serial.print("Demo mode is now ");
         if (demoMode == 1) {
           Serial.println("Pattern Demo");
@@ -1701,6 +1725,7 @@ void loop() {
         } else {
           Serial.println("Frame Animation Demo");
         }
+        Serial.println("Pre-reverse started...");
       }
     }
   }
@@ -1796,15 +1821,13 @@ void updatePWM() {
       // Move to the next frame
       currentFrame++;
       
-      // If we've shown all frames, stop the demo
+      // If we've shown all frames, start reverse mode
       if(currentFrame >= NUM_FRAMES_1) {
-        // Turn off all outputs
-        for(int i = 0; i < 32; i++) {
-          desired[i] = 0;
-        }
         demoActive = false;
         currentFrame = 0;  // Reset for next time
-        Serial.println("Pattern demo completed.");
+        reverseActive = true;
+        reverseStartTime = millis();
+        Serial.println("Pattern demo completed. Starting reverse...");
       }
     }
   } else if(demoMode == 2 && demoActive) {
@@ -1821,15 +1844,13 @@ void updatePWM() {
       // Move to the next frame
       currentFrame++;
       
-      // If we've shown all frames, stop the demo
+      // If we've shown all frames, start reverse mode
       if(currentFrame >= NUM_FRAMES_2) {
-        // Turn off all outputs
-        for(int i = 0; i < 32; i++) {
-          desired[i] = 0;
-        }
         demoActive = false;
         currentFrame = 0;  // Reset for next time
-        Serial.println("Circular demo completed.");
+        reverseActive = true;
+        reverseStartTime = millis();
+        Serial.println("Circular demo completed. Starting reverse...");
       }
     }
   } else if(demoMode == 3 && demoActive) {
@@ -1846,15 +1867,13 @@ void updatePWM() {
       // Move to the next frame
       currentFrame++;
       
-      // If we've shown all frames, stop the demo
+      // If we've shown all frames, start reverse mode
       if(currentFrame >= NUM_FRAMES_3) {
-        // Turn off all outputs
-        for(int i = 0; i < 32; i++) {
-          desired[i] = 0;
-        }
         demoActive = false;
         currentFrame = 0;  // Reset for next time
-        Serial.println("Frame Animation demo completed.");
+        reverseActive = true;
+        reverseStartTime = millis();
+        Serial.println("Frame Animation demo completed. Starting reverse...");
       }
     }
   }else if(demoMode == 4 && demoActive) {
@@ -1871,15 +1890,13 @@ void updatePWM() {
       // Move to the next frame
       currentFrame++;
       
-      // If we've shown all frames, stop the demo
+      // If we've shown all frames, start reverse mode
       if(currentFrame >= NUM_FRAMES_4) {
-        // Turn off all outputs
-        for(int i = 0; i < 32; i++) {
-          desired[i] = 0;
-        }
         demoActive = false;
         currentFrame = 0;  // Reset for next time
-        Serial.println("Frame Animation demo completed.");
+        reverseActive = true;
+        reverseStartTime = millis();
+        Serial.println("Frame Animation demo completed. Starting reverse...");
       }
     }
   }//else if(demoMode == 5 && demoActive) {
@@ -1909,12 +1926,35 @@ void updatePWM() {
   //   }
   // }
 
-  // subphase partial logic
+  // Check if reverse mode should end
+  if(reverseActive && (millis() - reverseStartTime >= REVERSE_DURATION_MS)) {
+    reverseActive = false;
+    for(int i = 0; i < 32; i++) {
+      desired[i] = 0;
+    }
+    if(preReverseActive) {
+      // Pre-reverse done: now start the demo
+      preReverseActive = false;
+      demoActive = true;
+      subCount = 0;
+      Serial.println("Pre-reverse done. Starting demo...");
+    } else {
+      Serial.println("Post-reverse completed.");
+    }
+  }
+
+  // Apply valve commands based on mode
   for(int pix = 0; pix < 32; pix++) {
-    if(desired[pix] > pwm_phase) {
+    if(reverseActive) {
+      // REVERSE/DEFLATE mode: finger=1, reservoir=0 (vents air)
+      vals[finger[pix]]    = 1;
+      vals[reservoir[pix]] = 0;
+    } else if(desired[pix] > pwm_phase) {
+      // INFLATE mode: finger=0, reservoir=1
       vals[finger[pix]]    = 0;
       vals[reservoir[pix]] = 1;
     } else {
+      // OFF mode: finger=0, reservoir=0
       vals[finger[pix]]    = 0;
       vals[reservoir[pix]] = 0;
     }
